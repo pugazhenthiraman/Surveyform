@@ -84,3 +84,23 @@
     0 0 8px #000,
     0 0 16px #000;
 }
+
+.scrollable-options {
+  height: 220px; /* Fixed height for scroll */
+  overflow-y: auto;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #222;
+  display: block;
+}
+
+.scrollable-options::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollable-options::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+.scrollable-options::-webkit-scrollbar-track {
+  background: #222;
+}
