@@ -8,13 +8,13 @@ import { sections } from '../data/sections';
 import type { SectionMeta } from '../data/sections';
 
 interface SurveyContextType {
-  currentSection: SectionMeta;
+  currentSection: SectionMeta | undefined;
   currentSectionIndex: number;
-  currentQuestion: Question;
+  currentQuestion: Question | undefined;
   currentQuestionIndex: number;
   sectionQuestions: Question[];
-  answers: Record<string, any>;
-  setAnswer: (id: string, val: any) => void;
+  answers: Record<string, unknown>;
+  setAnswer: (id: string, val: unknown) => void;
   nextQuestion: () => void;
   prevQuestion: () => void;
   nextSection: () => void;
@@ -24,6 +24,8 @@ interface SurveyContextType {
   isLastSection: boolean;
   isFirstSection: boolean;
   goToSection: (sectionIdx: number) => void;
+  setCurrentQuestionIndex: (idx: number) => void;
+  finishSurvey: () => void;
 }
 
 // Disable fast-refresh rule since this file exports both context and provider
@@ -43,13 +45,14 @@ const sectionQuestionsMap: Record<number, Question[]> = {
 export const SurveyProvider: React.FC<SurveyProviderProps> = ({ children }) => {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
 
-  const currentSection = sections[currentSectionIndex];
-  const sectionQuestions = sectionQuestionsMap[currentSection.id];
-  const currentQuestion = sectionQuestions[currentQuestionIndex];
+  const isSurveyFinished = currentSectionIndex >= sections.length;
+  const currentSection = !isSurveyFinished ? sections[currentSectionIndex] : undefined;
+  const sectionQuestions = currentSection ? sectionQuestionsMap[currentSection.id] : [];
+  const currentQuestion = sectionQuestions.length > 0 ? sectionQuestions[currentQuestionIndex] : undefined;
 
-  const setAnswer = (id: string, val: any) => setAnswers(a => ({ ...a, [id]: val }));
+  const setAnswer = (id: string, val: unknown) => setAnswers(a => ({ ...a, [id]: val }));
 
   const nextQuestion = () => {
     if (currentQuestionIndex < sectionQuestions.length - 1) {
@@ -86,10 +89,14 @@ export const SurveyProvider: React.FC<SurveyProviderProps> = ({ children }) => {
     setCurrentQuestionIndex(0);
   };
 
-  const isLastQuestion = currentQuestionIndex === sectionQuestions.length - 1;
-  const isFirstQuestion = currentQuestionIndex === 0;
-  const isLastSection = currentSectionIndex === sections.length - 1;
-  const isFirstSection = currentSectionIndex === 0;
+  const finishSurvey = () => {
+    setCurrentSectionIndex(sections.length);
+  };
+
+  const isLastQuestion = !isSurveyFinished && currentQuestionIndex === sectionQuestions.length - 1;
+  const isFirstQuestion = !isSurveyFinished && currentQuestionIndex === 0;
+  const isLastSection = !isSurveyFinished && currentSectionIndex === sections.length - 1;
+  const isFirstSection = !isSurveyFinished && currentSectionIndex === 0;
 
   return (
     <SurveyContext.Provider
@@ -110,6 +117,8 @@ export const SurveyProvider: React.FC<SurveyProviderProps> = ({ children }) => {
         isLastSection,
         isFirstSection,
         goToSection,
+        setCurrentQuestionIndex,
+        finishSurvey,
       }}
     >
       {children}

@@ -10,6 +10,7 @@ export interface SubQuestion {
   options?: string[];
   highlight?: boolean;
   placeholder?: string;
+  inputs?: { name: string; label: string; placeholder?: string }[];
 }
 
 export interface Question {
@@ -51,7 +52,7 @@ export const questions: Question[] = [
   },
   {
     id: 4,
-    text: 'Please indicate the MAIN reason for your visit to St. Maarten / St. Martin.',
+    text: 'Please indicate the MAIN reason for your visit to\nSt. Maarten / St. Martin.',
     type: 'radio',
     options: [
       'Vacation / Leisure',
@@ -62,9 +63,9 @@ export const questions: Question[] = [
       'Shopping',
       'Education / Training (less than 1 year)',
       'Health and medical care',
-      'Attend Events / Festivals|please specify',
-      'Transit|final destination',
-      'Other|please specify'
+      'Attend Events / Festivals|Please Specify',
+      'Transit|Final Destination',
+      'Other|Please Specify'
     ],
     note: 'Only 1 answer possible'
   },
@@ -106,7 +107,7 @@ export const questions: Question[] = [
       { id: '7b', text: 'Airline / Hotel Official website', type: 'radio', options: ['Yes'] },
       { id: '7c', text: 'Direct phone call', type: 'radio', options: ['Yes'] },
       { id: '7d', text: 'Other online websites', type: 'text' },
-      { id: '7e', text: 'Other (please specify)', type: 'text' }
+      { id: '7e', text: 'Other (Please Specify)', type: 'text' }
     ]
   },
   {
@@ -122,7 +123,7 @@ export const questions: Question[] = [
   },
   {
     id: 9,
-    text: 'Where did you stay in St. Maarten / St. Martin during your present visit? (Please indicate both Dutch and French accommodations where necessary)',
+    text: 'Where did you stay in St. Maarten / St. Martin during your present visit?',
     type: 'group',
     subQuestions: [
       { id: '9a', text: 'Hotel', type: 'checkbox', options: ['Dutch', 'French'] },

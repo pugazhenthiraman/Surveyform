@@ -5,7 +5,7 @@ export const section2Questions: Question[] = [
   {
     id: 10,
     type: 'matrix',
-    text: 'Indicate the number of persons, including Yourself, with whom you are travelling and sharing expenses. Please indicate their age and sex categories.',
+    text: 'Indicate the number of persons, including Yourself, with whom you are travelling and sharing expenses. Please indicate their age and sex categories. (Indicate a number for each category)',
     matrix: {
       rows: [
         'Under 18 years',

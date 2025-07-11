@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Question as QType } from '../../data/questions';
 import { useSurvey } from '../../hook/useSurvey';
+import { useExpenseTotals } from '../../hook/useExpenseTotals';
 
 interface Props { question: QType; number: number; inputErrors?: Record<string, string>; }
 
@@ -11,6 +12,207 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
   // Debug: Log the question object and when the custom Q9 block runs
   console.log('Rendering Question:', question);
 
+  // Custom rendering for Q16 + Q17: income and email on the same page
+  if (question.id === 16 && question.subQuestions) {
+    return (
+      <div>
+        <p className="mb-1 text-base md:text-lg font-semibold text-white text-left">
+          {number}. <span className="font-bold text-white">
+            {(() => {
+              // Highlight 'gross annual household income' in orange
+              const parts = question.text.split(/(gross annual household income\??)/i);
+              return parts.map((part, i) =>
+                part.toLowerCase().includes('gross annual household income') ? (
+                  <span key={i} className="text-orange-500">{part}</span>
+                ) : (
+                  <React.Fragment key={i}>{part}</React.Fragment>
+                )
+              );
+            })()}
+          </span>
+        </p>
+        {/* Currency input */}
+        <div className="mb-4 flex items-center">
+          <label className="mr-2 font-medium text-white">Currency:</label>
+          <input
+            type="text"
+            className="border-b border-gray-400 p-1 w-full text-black bg-gray-100"
+            value={answers['16a'] || ''}
+            onChange={e => setAnswer('16a', e.target.value)}
+            placeholder="e.g. USD"
+          />
+        </div>
+        {/* Income range radio group */}
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {question.subQuestions.filter(sub => sub.id !== '16a').map(sub => (
+            <label key={sub.id} className="flex items-center space-x-2 text-white">
+              <input
+                type="radio"
+                name="q16_income"
+                checked={answers['16_selected'] === sub.id}
+                onChange={() => setAnswer('16_selected', sub.id)}
+              />
+              <span className="text-white">{sub.text}</span>
+            </label>
+          ))}
+        </div>
+        {/* Email input */}
+        <div className="mb-4 flex flex-col items-start">
+          <label className="font-medium mb-1 text-white">Email (raffle)</label>
+          <input
+            type="email"
+            className="border-b border-gray-400 p-1 w-full text-black bg-gray-100"
+            value={answers['17'] || ''}
+            onChange={e => setAnswer('17', e.target.value)}
+            placeholder="Enter your email "
+            autoComplete="email"
+          />
+        </div>
+      </div>
+    );
+  }
+  // Custom rendering for Q15: country of permanent residence (radio + input fields)
+  if (question.id === 15 && question.subQuestions) {
+    const selected = answers['15_selected'];
+    return (
+      <>
+        <p className="mb-1 text-base md:text-lg font-semibold text-white text-left">
+          {number}. <span className="font-bold">
+            {question.text.split('\n').map((line, idx) => (
+              <React.Fragment key={idx}>
+                {line}
+                {idx < question.text.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </span>
+        </p>
+        <p className="mb-4 text-sm italic text-orange-500 text-left">(Write in CAPITAL letters)</p>
+        <div className="w-full max-w-2xl mx-auto">
+          <div className="grid grid-cols-7 gap-2 items-end font-bold text-black text-sm mb-1">
+            <div className="col-span-2"></div>
+            <div className="col-span-2 text-center">{question.subQuestions[0]?.inputs?.[0]?.label || ''}</div>
+            <div className="col-span-2 text-center">{question.subQuestions[0]?.inputs?.[1]?.label || ''}</div>
+          </div>
+          {question.subQuestions.map((sub) => {
+            const isSelected = selected === sub.id;
+            return (
+              <div key={sub.id} className="grid grid-cols-7 gap-2 items-center mb-2">
+                <div className="col-span-2 flex items-center">
+                  <input
+                    type="radio"
+                    name="q15_selected"
+                    checked={isSelected}
+                    onChange={() => setAnswer('15_selected', sub.id)}
+                    title={sub.text}
+                    aria-label={sub.text}
+                  />
+                  <span className="ml-2 text-white font-medium">{sub.text}</span>
+                </div>
+                {sub.inputs?.map((input, i) => (
+                  <React.Fragment key={input.name}>
+                    <div className="col-span-2">
+                      <label className="sr-only">{input.label}</label>
+                      <input
+                        type="text"
+                        className={`border-b border-gray-400 p-1 w-full text-black bg-gray-100 ${sub.id === '15c' && i === 0 ? 'italic' : ''}`}
+                        value={answers[`15_${sub.id}_${input.name}`] || ''}
+                        onChange={e => setAnswer(`15_${sub.id}_${input.name}`, e.target.value.toUpperCase())}
+                        placeholder={input.label}
+                        title={input.label}
+                        disabled={!isSelected}
+                      />
+                    </div>
+                  </React.Fragment>
+                ))}
+                {/* Fill empty columns for rows with fewer than 2 inputs */}
+                {sub.inputs && sub.inputs.length < 2 && <div className="col-span-2"></div>}
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
+  // Custom rendering for Q1 (on duty) radio highlight in subQuestions
+  if (question.id === 1 && question.subQuestions) {
+    return (
+      <>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">
+          {number}. {question.text}
+        </p>
+        <div className="w-full max-w-lg mx-auto flex flex-col gap-4 items-start">
+          {question.subQuestions.map((sub) => (
+            <div key={sub.id} className="w-full flex items-center justify-between">
+              <label className="inline-flex items-center space-x-2 text-white">
+                <input
+                  type="radio"
+                  name={`q1_${sub.id}`}
+                  // checked logic may need to be adjusted based on your answer structure
+                  checked={answers[`1_${sub.id}`] === 'Yes'}
+                  onChange={() => setAnswer(`1_${sub.id}`, 'Yes')}
+                />
+                <span className="text-white">
+                  {sub.id === '1a'
+                    ? (<>
+                        A Airline crew member <span className="italic text-orange-500">(on duty)</span>?
+                      </>)
+                    : sub.text}
+                </span>
+              </label>
+              <label className="inline-flex items-center space-x-2 text-white">
+                <input
+                  type="radio"
+                  name={`q1_${sub.id}`}
+                  checked={answers[`1_${sub.id}`] === 'No'}
+                  onChange={() => setAnswer(`1_${sub.id}`, 'No')}
+                />
+                <span className="text-white">No</span>
+              </label>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+  // Custom rendering for Q3: highlight '1st visit' in the question text
+  if (question.id === 3) {
+    return (
+      <>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-left">
+          {number}. {(() => {
+            const parts = question.text.split(/("?1st visit"?)/i);
+            return parts.map((part, i) =>
+              part.toLowerCase().includes('1st visit') ? (
+                <span key={i} className="text-orange-500 italic font-semibold">{part}</span>
+              ) : (
+                <React.Fragment key={i}>{part}</React.Fragment>
+              )
+            );
+          })()}
+        </p>
+        <div className="w-full max-w-lg mx-auto flex flex-row gap-8 justify-center">
+          <label className="inline-flex items-center space-x-2 text-white">
+            <input
+              type="radio"
+              name={`q${question.id}`}
+              checked={value === 'Yes'}
+              onChange={() => setAnswer(String(question.id), 'Yes')}
+            />
+            <span>Yes</span>
+          </label>
+          <label className="inline-flex items-center space-x-2 text-white">
+            <input
+              type="radio"
+              name={`q${question.id}`}
+              checked={value === 'No'}
+              onChange={() => setAnswer(String(question.id), 'No')}
+            />
+            <span>No</span>
+          </label>
+        </div>
+      </>
+    );
+  }
   // Improved UI for Question 9: radio group for types, then Dutch/French checkboxes, then name input
   if (question.id === 9 && question.subQuestions) {
     console.log('Custom Q9 improved block running');
@@ -25,7 +227,10 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
 
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-1 text-base md:text-lg font-semibold text-white text-left">{number}. <span className="font-bold">
+          {question.text}
+        </span></p>
+        <p className="mb-4 text-sm italic text-orange-500 text-left">(Please indicate both Dutch and French accommodations where necessary)</p>
         {/* Radio group for accommodation types */}
         <ul className="text-white w-full max-w-lg mx-auto flex flex-col gap-2 items-start mb-4">
           {types.map(sub => (
@@ -78,11 +283,13 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
             <input
               type="text"
               className="border p-2 w-full rounded text-black bg-white placeholder-gray-400"
-              value={answers['9i_other'] || ''}
+              value={typeof answers['9i_other'] === 'string' ? answers['9i_other'] : ''}
               onChange={e => setAnswer('9i_other', e.target.value)}
-              placeholder="please specify type (e.g. Timeshare, Condo, Villa, Personal house)"
+              placeholder="Please Specify type (e.g. Timeshare, Condo, Villa, Personal house)"
             />
-            {inputErrors && inputErrors['9i_other'] && <div className="text-red-500 text-xs mt-1">{inputErrors['9i_other']}</div>}
+            {inputErrors && inputErrors['9i_other'] && (
+              <div className="text-red-500 text-xs mt-1">{inputErrors['9i_other']}</div>
+            )}
           </div>
         )}
         {/* Accommodation name input */}
@@ -94,7 +301,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
               className="border p-2 w-full rounded text-black bg-white placeholder-gray-400"
               value={answers['9j'] || ''}
               onChange={e => setAnswer('9j', e.target.value)}
-              placeholder="Enter accommodation name/address"
+              placeholder="Enter Accommodation Name/Address"
             />
             {inputErrors && inputErrors['9j'] && <div className="text-red-500 text-xs mt-1">{inputErrors['9j']}</div>}
           </div>
@@ -109,7 +316,14 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     const selected = value;
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-left">{number}. <span className="font-bold">{question.text}</span></p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-left">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <ul className="w-full max-w-lg flex flex-col gap-2 items-start mb-4">
           <li className="w-full flex items-center">
             <label className="inline-flex items-center space-x-2 text-white">
@@ -127,7 +341,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                 className="ml-4 border-b border-gray-400 p-1 w-1/2 text-black bg-white placeholder-gray-400"
                 value={answers['11_provider'] || ''}
                 onChange={e => setAnswer('11_provider', e.target.value)}
-                placeholder="Provider name"
+                placeholder="Provider Name"
               />
             )}
           </li>
@@ -139,7 +353,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                 checked={selected === noOpt}
                 onChange={() => setAnswer(String(question.id), noOpt)}
               />
-              <span>No, <span className="italic text-orange-500">skip to question 13</span></span>
+              <span>No, <span className="italic text-orange-500">skip to question 3</span></span>
             </label>
           </li>
         </ul>
@@ -166,9 +380,21 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
       'Room & Breakfast included',
       'Room, Breakfast and other meals',
     ];
+    // Collect all Dutch and French keys for calculation
+    const dutchKeys = rows.map(row => `${row.id}_dutch`);
+    const frenchKeys = rows.map(row => `${row.id}_french`);
+    const { totalDutch, totalFrench, totalCombined } = useExpenseTotals(answers as any, dutchKeys, frenchKeys);
+
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-left">{number}. <span className="font-bold">{question.text}</span></p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-left">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <div className="w-full max-w-4xl mx-auto mb-4">
           <div className="grid grid-cols-3 gap-2 bg-white/10 rounded-t p-2 font-bold text-white text-center">
             <div className="text-left pl-2"></div>
@@ -235,29 +461,33 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                 return (
                   <div key={row.id} className="grid grid-cols-3 gap-2 items-center py-2">
                     <div className="text-white text-left pr-2">Other</div>
-                    <input
-                      type="text"
-                      className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
-                      value={answers['12g_dutch'] || ''}
-                      onChange={e => setAnswer('12g_dutch', e.target.value)}
-                      placeholder="Amount (Dutch)"
-                    />
-                    <input
-                      type="text"
-                      className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
-                      value={answers['12g_french'] || ''}
-                      onChange={e => setAnswer('12g_french', e.target.value)}
-                      placeholder="Amount (French)"
-                    />
-                    <div className="col-span-3 flex items-center mt-2 ml-8">
-                      <span className="text-white mr-2">please specify</span>
-                      <input
-                        type="text"
-                        className="border p-1 rounded text-black bg-white placeholder-gray-400 w-1/2"
-                        value={answers['12g_other'] || ''}
-                        onChange={e => setAnswer('12g_other', e.target.value)}
-                        placeholder="please specify"
-                      />
+                    <div className="col-span-2 w-full">
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
+                          value={answers['12g_dutch'] || ''}
+                          onChange={e => setAnswer('12g_dutch', e.target.value)}
+                          placeholder="Amount (Dutch)"
+                        />
+                        <input
+                          type="text"
+                          className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
+                          value={answers['12g_french'] || ''}
+                          onChange={e => setAnswer('12g_french', e.target.value)}
+                          placeholder="Amount (French)"
+                        />
+                      </div>
+                      <div className="flex items-center mt-2">
+                 
+                        <input
+                          type="text"
+                          className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
+                          value={answers['12g_other'] || ''}
+                          onChange={e => setAnswer('12g_other', e.target.value)}
+                          placeholder="Please Specify"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -287,16 +517,18 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
               <div className="text-white text-left pr-2">Total spent:</div>
               <input
                 type="text"
-                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
-                value={answers['12_total_dutch'] || ''}
-                onChange={e => setAnswer('12_total_dutch', e.target.value)}
+                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full bg-yellow-100 font-bold"
+                value={totalDutch.toLocaleString() || '0'}
+                readOnly
+                tabIndex={-1}
                 placeholder="Total Dutch"
               />
               <input
                 type="text"
-                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full"
-                value={answers['12_total_french'] || ''}
-                onChange={e => setAnswer('12_total_french', e.target.value)}
+                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full bg-yellow-100 font-bold"
+                value={totalFrench.toLocaleString() || '0'}
+                readOnly
+                tabIndex={-1}
                 placeholder="Total French"
               />
             </div>
@@ -304,9 +536,10 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
               <div className="text-white text-left pr-2">Total combined (Dutch & French):</div>
               <input
                 type="text"
-                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full col-span-2"
-                value={answers['12_total_combined'] || ''}
-                onChange={e => setAnswer('12_total_combined', e.target.value)}
+                className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full col-span-2 bg-yellow-100 font-bold"
+                value={totalCombined.toLocaleString() || '0'}
+                readOnly
+                tabIndex={-1}
                 placeholder="Combined total"
               />
             </div>
@@ -330,9 +563,34 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     ];
     // Map subQuestions by id for easy lookup
     const subMap = Object.fromEntries(question.subQuestions.map(sq => [sq.id, sq]));
+
+    // Collect all Dutch and French keys for calculation
+    const dutchKeys = sections.flatMap(section => section.ids.map(id => `${id}_dutch`));
+    const frenchKeys = sections.flatMap(section => section.ids.map(id => `${id}_french`));
+    const { totalDutch, totalFrench, totalCombined } = useExpenseTotals(answers as any, dutchKeys, frenchKeys);
+
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-left">{number}. <span className="font-bold">{question.text}</span></p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-left">{number}. <span className="font-bold">
+          {(() => {
+            // Highlight 'TOTAL', 'IN', and the note
+            const mainText = question.text.replace(/\(Excluding prepaid package and\/or airfare, question 12\)/, '').trim();
+            const noteMatch = question.text.match(/\(Excluding prepaid package and\/or airfare, question 12\)/);
+            // Highlight TOTAL and IN
+            const parts = mainText.split(/(TOTAL|IN)/);
+            return <>
+              {parts.map((part, i) => {
+                if (part === 'TOTAL' || part === 'IN') {
+                  return <span key={i} className="text-orange-500 font-semibold">{part}</span>;
+                }
+                return <React.Fragment key={i}>{part}</React.Fragment>;
+              })}
+              {noteMatch && (
+                <span className="block text-sm italic text-orange-500 mt-1">{noteMatch[0]}</span>
+              )}
+            </>;
+          })()}
+        </span></p>
         <div className="w-full max-w-4xl mx-auto mb-4">
           <div className="flex items-center gap-4 mb-2">
             <span className="font-bold text-white">Currency:</span>
@@ -377,6 +635,38 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
               })}
             </React.Fragment>
           ))}
+          {/* Total spent row */}
+          <div className="grid grid-cols-3 gap-2 items-center py-2 font-bold">
+            <div className="text-white text-left pr-2">Total spent:</div>
+            <input
+              type="text"
+              className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full bg-yellow-100 font-bold"
+              value={totalDutch.toLocaleString() || '0'}
+              readOnly
+              tabIndex={-1}
+              placeholder="Total Dutch"
+            />
+            <input
+              type="text"
+              className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full bg-yellow-100 font-bold"
+              value={totalFrench.toLocaleString() || '0'}
+              readOnly
+              tabIndex={-1}
+              placeholder="Total French"
+            />
+          </div>
+          {/* Total combined row */}
+          <div className="grid grid-cols-3 gap-2 items-center py-2 font-bold">
+            <div className="text-white text-left pr-2">Total combined (Dutch & French):</div>
+            <input
+              type="text"
+              className="border p-1 rounded text-black bg-white placeholder-gray-400 w-full col-span-2 bg-yellow-100 font-bold"
+              value={totalCombined.toLocaleString() || '0'}
+              readOnly
+              tabIndex={-1}
+              placeholder="Combined total"
+            />
+          </div>
         </div>
       </>
     );
@@ -385,24 +675,45 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     const isScrollable = question.options && question.options.length > 5;
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <ul
           className={`text-white w-full max-w-lg mx-auto${isScrollable ? ' scrollable-options' : ' flex flex-col gap-4 items-start'}`}
         >
           {question.options!.map(optRaw => {
             const [opt] = optRaw.split('|');
             let placeholder = '';
-            if (opt === 'Attend Events / Festivals') placeholder = 'please specify';
-            if (opt === 'Transit') placeholder = 'final destination';
-            if (opt === 'Other') placeholder = 'please specify';
+            if (opt === 'Attend Events / Festivals') placeholder = 'Please Specify';
+            if (opt === 'Transit') placeholder = 'Final Destination';
+            if (opt === 'Other') placeholder = 'Please Specify';
+            const isSelected = value === opt;
+            // Key for the input field
+            const inputKey = `${question.id}_${opt.replace(/\s+/g, '_').toLowerCase()}`;
+            // When changing radio, clear all other input fields
+            const handleRadioChange = () => {
+              setAnswer(String(question.id), opt);
+              // Clear all other input fields for this question
+              ['Attend Events / Festivals', 'Transit', 'Other'].forEach(option => {
+                const key = `${question.id}_${option.replace(/\s+/g, '_').toLowerCase()}`;
+                if (option !== opt && answers[key]) {
+                  setAnswer(key, '');
+                }
+              });
+            };
             return (
               <li key={optRaw} className="w-full flex items-center justify-between">
                 <label className="inline-flex items-center space-x-2 text-white">
                   <input
                     type="radio"
                     name={`q${question.id}`}
-                    checked={value === opt}
-                    onChange={() => setAnswer(String(question.id), opt)}
+                    checked={isSelected}
+                    onChange={handleRadioChange}
                   />
                   <span className="text-white">{opt}</span>
                 </label>
@@ -410,12 +721,14 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                   <input
                     type="text"
                     className="ml-4 border p-1 rounded text-black bg-white placeholder-gray-400 w-1/2"
-                    value={answers[`${question.id}_${opt.replace(/\s+/g, '_').toLowerCase()}`] as string || ''}
-                    onChange={e => setAnswer(`${question.id}_${opt.replace(/\s+/g, '_').toLowerCase()}`, e.target.value)}
+                    value={answers[inputKey] as string || ''}
+                    onChange={e => setAnswer(inputKey, e.target.value)}
                     placeholder={placeholder}
+                    disabled={!isSelected}
+                    style={!isSelected ? { backgroundColor: '#e5e7eb' } : {}}
                   />
                 )}
-                {inputErrors && inputErrors[`${question.id}_${opt.replace(/\s+/g, '_').toLowerCase()}`] && <div className="text-red-500 text-xs mt-1">{inputErrors[`${question.id}_${opt.replace(/\s+/g, '_').toLowerCase()}`]}</div>}
+                {inputErrors && inputErrors[inputKey] && <div className="text-red-500 text-xs mt-1">{inputErrors[inputKey]}</div>}
               </li>
             );
           })}
@@ -427,7 +740,14 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     const isScrollable = question.options && question.options.length > 5;
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <ul
           className={`text-white w-full max-w-lg mx-auto${isScrollable ? ' scrollable-options' : ' flex flex-col gap-4 items-start'}`}
         >
@@ -465,7 +785,14 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     const isScrollable = question.options && question.options.length > 5;
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <ul
           className={`text-white${isScrollable ? ' scrollable-options' : ' flex flex-wrap gap-4 justify-center'}`}
         >
@@ -493,7 +820,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                     className="ml-2 border p-1 rounded text-black bg-white placeholder-gray-400"
                     value={answers[`${question.id}_other`] as string || ''}
                     onChange={e => setAnswer(`${question.id}_other`, e.target.value)}
-                    placeholder="Please specify"
+                    placeholder="Please Specify"
                   />
                 )}
                 {inputErrors && inputErrors[`${question.id}_other`] && <div className="text-red-500 text-xs mt-1">{inputErrors[`${question.id}_other`]}</div>}
@@ -507,7 +834,26 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
   if (question.type === 'group' && [2, 7, 8, 9].includes(question.id) && question.subQuestions) {
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {question.id === 8
+            ? (() => {
+                // Highlight 'Nights' in orange for question 8
+                const parts = question.text.split(/(Nights)/);
+                return parts.map((part, i) =>
+                  part === 'Nights' ? (
+                    <span key={i} className="text-orange-500">{part}</span>
+                  ) : (
+                    <React.Fragment key={i}>{part}</React.Fragment>
+                  )
+                );
+              })()
+            : question.text.split('\n').map((line, idx) => (
+                <React.Fragment key={idx}>
+                  {line}
+                  {idx < question.text.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
+        </span></p>
         <ul className="text-white w-full max-w-lg mx-auto flex flex-col gap-4 items-start">
           {question.subQuestions.map((sub) => (
             <li key={sub.id} className="w-full flex items-center justify-between">
@@ -518,7 +864,19 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                   checked={value === sub.id}
                   onChange={() => setAnswer(String(question.id), sub.id)}
                 />
-                <span className="text-white">{sub.text}</span>
+                <span className="text-white">
+                  {sub.text.includes('question 4') ? (
+                    <>
+                      {sub.text.split(/(question 4\.?)/i).map((part, i) =>
+                        part.toLowerCase().includes('question 4') ? (
+                          <span key={i} className="text-orange-500 font-semibold">{part}</span>
+                        ) : (
+                          <React.Fragment key={i}>{part}</React.Fragment>
+                        )
+                      )}
+                    </>
+                  ) : sub.text}
+                </span>
               </label>
               {sub.type === 'text' && value === sub.id && (
                 <input
@@ -526,7 +884,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                   className="ml-4 border p-1 rounded text-black bg-white placeholder-gray-400 w-1/2"
                   value={answers[`${question.id}_${sub.id}_text`] || ''}
                   onChange={e => setAnswer(`${question.id}_${sub.id}_text`, e.target.value)}
-                  placeholder={sub.placeholder || 'Please specify'}
+                  placeholder={sub.placeholder || 'Please Specify'}
                 />
               )}
               {inputErrors && inputErrors[`${question.id}_${sub.id}_text`] && <div className="text-red-500 text-xs mt-1">{inputErrors[`${question.id}_${sub.id}_text`]}</div>}
@@ -539,7 +897,14 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
   if (question.type === 'group' && question.subQuestions) {
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {question.text.split('\n').map((line, idx) => (
+            <React.Fragment key={idx}>
+              {line}
+              {idx < question.text.split('\n').length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </span></p>
         <div className="space-y-4">
           {question.subQuestions.map((sub) => {
             const subValue = answers[String(sub.id)] || '';
@@ -564,7 +929,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                       className="ml-2 border p-1 rounded text-black bg-white placeholder-gray-400"
                       value={answers[String(sub.id)] as string || ''}
                       onChange={e => setAnswer(String(sub.id), e.target.value)}
-                      placeholder="Please specify"
+                      placeholder="Please Specify"
                     />
                   )}
                   {sub.options && sub.options.some(opt => opt.toLowerCase().includes('other') || opt.toLowerCase().includes('specify')) &&
@@ -574,7 +939,7 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
                         className="ml-2 border p-1 rounded text-black bg-white placeholder-gray-400"
                         value={answers[`${sub.id}_other`] as string || ''}
                         onChange={e => setAnswer(`${sub.id}_other`, e.target.value)}
-                        placeholder="Please specify"
+                        placeholder="Please Specify"
                       />
                   )}
                   {inputErrors && inputErrors[`${sub.id}_other`] && <div className="text-red-500 text-xs mt-1">{inputErrors[`${sub.id}_other`]}</div>}
@@ -592,7 +957,26 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
     const genders = question.matrix.columns;
     return (
       <>
-        <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+        <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+          {(() => {
+            // Highlight 'including Yourself' and '(Indicate a number for each category)'
+            const mainText = question.text.replace(/\(Indicate a number for each category\)/, '').trim();
+            const noteMatch = question.text.match(/\(Indicate a number for each category\)/);
+            const parts = mainText.split(/(including Yourself)/);
+            return <>
+              {parts.map((part, i) =>
+                part === 'including Yourself' ? (
+                  <span key={i} className="text-orange-500 font-semibold">{part}</span>
+                ) : (
+                  <React.Fragment key={i}>{part}</React.Fragment>
+                )
+              )}
+              {noteMatch && (
+                <span className="block text-sm italic text-orange-500 mt-1">{noteMatch[0]}</span>
+              )}
+            </>;
+          })()}
+        </span></p>
         <table className="w-full max-w-lg mx-auto text-white border-separate border-spacing-y-2">
           <thead>
             <tr>
@@ -633,9 +1017,25 @@ export const Question: React.FC<Props> = ({ question, number, inputErrors }) => 
       </>
     );
   }
+  // Force line break for question 4
+  if (question.id === 4) {
+    const [first, second] = question.text.split('/');
+    return (
+      <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">
+        {number}. {first}/<br />{second}
+      </p>
+    );
+  }
   return (
     <>
-      <p className="mb-4 text-lg font-semibold text-white text-center">{number}. {question.text}</p>
+      <p className="mb-4 text-base md:text-lg font-semibold text-white text-center">{number}. <span className="font-bold">
+        {question.text.split('\n').map((line, idx) => (
+          <React.Fragment key={idx}>
+            {line}
+            {idx < question.text.split('\n').length - 1 && <br />}
+          </React.Fragment>
+        ))}
+      </span></p>
       <input
         type="text"
         className="border p-2 w-full rounded text-white bg-transparent placeholder-white"

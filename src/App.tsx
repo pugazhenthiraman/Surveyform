@@ -1,7 +1,7 @@
 import React from 'react';
 import { Header } from './components/Header';
 import { Survey } from './components/survey/survey';
-import { Footer } from '../src/components/Footer';
+// import { Footer } from '../src/components/Footer'; // Remove this import
 import { SurveyProvider } from './contexts/SurveyContext';
 
 export const App: React.FC = () => (
@@ -11,7 +11,7 @@ export const App: React.FC = () => (
       <div className="flex-grow flex flex-col">
         <Survey />
       </div>
-      <Footer />
+      {/* <Footer /> Removed to prevent duplicate footers */}
     </div>
   </SurveyProvider>
 );

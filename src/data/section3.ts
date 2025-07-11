@@ -13,21 +13,68 @@ export const section3Questions: Question[] = [
       'Family only',
       'Friends only',
       'Business Associates',
-      'Other|please specify',
+      'Other|Please Specify',
     ],
     required: true,
   },
   {
     id: 15,
     type: 'group',
-    text: 'Please indicate your country of permanent residence.',
+    text: 'Please indicate your country of permanent residence. ',
     subQuestions: [
-      { id: '15a', text: 'United States', type: 'text', placeholder: 'State, Zip Code' },
-      { id: '15b', text: 'Canada', type: 'text', placeholder: 'Province, Postal Code' },
-      { id: '15c', text: 'Caribbean', type: 'text', placeholder: 'specify' },
-      { id: '15d', text: 'South America', type: 'text', placeholder: 'Country, City' },
-      { id: '15e', text: 'Europe', type: 'text', placeholder: 'Country, City' },
-      { id: '15f', text: 'Other', type: 'text', placeholder: 'Country, City' },
+      {
+        id: '15a',
+        text: 'United States',
+        type: 'radio',
+        inputs: [
+          { name: 'state', label: 'State', placeholder: 'State' },
+          { name: 'zip', label: 'Zip Code', placeholder: 'Zip Code' },
+        ],
+      },
+      {
+        id: '15b',
+        text: 'Canada',
+        type: 'radio',
+        inputs: [
+          { name: 'province', label: 'Province', placeholder: 'Province' },
+          { name: 'postal', label: 'Postal Code', placeholder: 'Postal Code' },
+        ],
+      },
+      {
+        id: '15c',
+        text: 'Caribbean',
+        type: 'radio',
+        inputs: [
+          { name: 'specify', label: '(Specify)', placeholder: 'specify' },
+        ],
+      },
+      {
+        id: '15d',
+        text: 'South America',
+        type: 'radio',
+        inputs: [
+          { name: 'country', label: 'Country', placeholder: 'Country' },
+          { name: 'city', label: 'City', placeholder: 'City' },
+        ],
+      },
+      {
+        id: '15e',
+        text: 'Europe',
+        type: 'radio',
+        inputs: [
+          { name: 'country', label: 'Country', placeholder: 'Country' },
+          { name: 'city', label: 'City', placeholder: 'City' },
+        ],
+      },
+      {
+        id: '15f',
+        text: 'Other',
+        type: 'radio',
+        inputs: [
+          { name: 'country', label: 'Country', placeholder: 'Country' },
+          { name: 'city', label: 'City', placeholder: 'City' },
+        ],
+      },
     ],
     required: true,
   },
@@ -46,10 +93,5 @@ export const section3Questions: Question[] = [
     ],
     required: true,
   },
-  {
-    id: 17,
-    type: 'text',
-    text: 'Email (raffle)',
-    required: false,
-  },
+ 
 ]; 
